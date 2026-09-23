@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Carton Scanner</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#122A4D" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Carton Scanner" />
+<link rel="icon" href="icon-192.png" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<style>
+  :root{
+    --bg:#EAEDF2;
+    --panel:#FFFFFF;
+    --line:#B6C0CC;
+    --phos:#122A4D;
+    --phos-dim:#48586E;
+    --err:#A5291A;
+    --amber:#6E4A00;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--phos);
+    font-family:"Courier New", Courier, monospace;
+    font-size:18px;
+    -webkit-tap-highlight-color:transparent;
+    min-height:100vh;
+  }
+  .screen{
+    max-width:420px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--bg);
+    padding:10px 10px 24px;
+    border-left:1px solid var(--line);
+    border-right:1px solid var(--line);
+  }
+  .view{display:none;}
+  /* header */
+  .hdr{
+    background:var(--panel);
+    border:2px solid var(--phos-dim);
+    padding:8px 10px;
+    margin-bottom:8px;
+  }
+  .hdr-top{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:14px; letter-spacing:0.12em; color:var(--phos-dim);
+  }
+  .hdr-title{
+    font-size:22px; font-weight:bold; letter-spacing:0.06em;
+    margin:2px 0 6px; color:var(--phos);
+  }
+  .hdr-sub{font-size:13px; color:var(--phos-dim); margin-bottom:6px;}
+  .hdr-row{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:15px;
+  }
+  .hdr-total{
+    font-size:28px; font-weight:bold; color:var(--amber);
+  }
+  .tag{
+    font-size:13px; padding:2px 6px; border:1px solid currentColor;
+    letter-spacing:0.08em;
+  }
+  .tag.ok{color:var(--phos);}
+  .tag.warn{color:var(--err);}
+  .backBtn{
+    background:transparent; border:none; color:var(--phos-dim); font-family:inherit;
+    font-size:14px; padding:0; letter-spacing:0.05em; margin-bottom:6px; cursor:pointer;
+  }
+
+  /* panels */
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:8px 10px;
+    margin-bottom:8px;
+  }
+  .panel-title{
+    font-size:13px; letter-spacing:0.14em; color:var(--phos-dim);
+    margin-bottom:8px; border-bottom:1px solid var(--line); padding-bottom:6px;
+  }
+
+  .whRow{display:flex; gap:8px;}
+  .whBtn{
+    flex:1; background:#FFFFFF; border:1.5px solid var(--line); color:var(--phos-dim);
+    font-family:inherit; font-size:14px; font-weight:bold; padding:12px 6px; letter-spacing:0.03em;
+  }
+  .whBtn.selected{
+    border-color:var(--amber); color:var(--amber); background:rgba(110,74,0,0.07);
+  }
+  .whHint{font-size:12px; color:var(--phos-dim); margin-top:8px;}
+
+  /* form fields */
+  .fieldLabel{display:block; font-size:12px; letter-spacing:0.1em; color:var(--phos-dim); margin:8px 0 4px;}
+  .fieldLabel:first-child{margin-top:0;}
+  .textInput{
+    width:100%; background:#FFFFFF; border:1px solid var(--line); color:var(--phos);
+    font-family:inherit; font-size:16px; padding:9px 8px; outline:none;
+  }
+  .primaryBtn{
+    width:100%; background:var(--phos); color:#F2F3EC; border:none;
+    font-family:inherit; font-weight:bold; font-size:15px; padding:11px; letter-spacing:0.05em; margin-top:10px;
+  }
+  .secondaryBtn{
+    width:100%; background:transparent; border:1px solid var(--line); color:var(--phos-dim);
+    font-family:inherit; font-size:14px; padding:9px; letter-spacing:0.05em; margin-top:8px;
+  }
+  .formMsg{font-size:14px; color:var(--err); margin-top:8px; display:none;}
+
+  /* scan form */
+  #scanForm{display:flex; gap:6px;}
+  #scanInput{
+    flex:1;
+    background:#FFFFFF;
+    border:2px solid var(--phos-dim);
+    color:var(--phos);
+    font-family:inherit;
+    font-size:22px;
+    letter-spacing:0.05em;
+    padding:10px 8px;
+    outline:none;
+  }
+  #scanInput:disabled{color:var(--phos-dim); border-color:var(--line); background:#EAEBE3;}
+  #scanInput.err{border-color:var(--err); color:var(--err);}
+  #scanBtn{
+    background:var(--phos);
+    color:#F2F3EC;
+    border:none;
+    font-family:inherit;
+    font-weight:bold;
+    font-size:16px;
+    padding:0 14px;
+  }
+  #scanBtn:disabled{opacity:0.4;}
+  #flashLine{
+    min-height:20px; margin-top:6px; font-size:15px; letter-spacing:0.03em;
+  }
+  #flashLine.ok{color:var(--phos);}
+  #flashLine.err{color:var(--err);}
+
+  #completeBtn{
+    width:100%; margin-top:8px;
+    background:transparent; border:1px solid var(--amber); color:var(--amber);
+    font-family:inherit; font-size:15px; padding:9px; letter-spacing:0.04em;
+  }
+  #finishTruckBtn{
+    width:100%; margin-top:8px;
+    background:var(--err); color:#FFFFFF; border:none;
+    font-family:inherit; font-size:14px; font-weight:bold; padding:10px; letter-spacing:0.05em;
+  }
+
+  /* seq no chip strip */
+  #partyList{
+    display:flex; flex-wrap:wrap; gap:8px;
+    list-style:none; margin:0; padding:2px 2px 4px;
+    max-height:300px; overflow-y:auto;
+  }
+  .seqChip{
+    flex:0 0 auto;
+    min-width:76px;
+    background:#FFFFFF;
+    border:1.5px solid var(--line);
+    padding:7px 9px;
+    text-align:center;
+    transition: flex-basis 220ms ease, transform 220ms ease, border-color 220ms ease, min-width 220ms ease, opacity 220ms ease;
+  }
+  .seqChip.active{
+    border-color:var(--amber);
+    background:rgba(110,74,0,0.07);
+    min-width:100px;
+    transform:scale(1.05);
+    box-shadow:0 0 0 2px rgba(110,74,0,0.15);
+  }
+  .seqChip.done{opacity:0.55;}
+  .seqChip.next{border-style:dashed; border-color:var(--phos-dim);}
+  .chip-idx{font-size:11px; letter-spacing:0.08em; color:var(--phos-dim);}
+  .chip-name{
+    font-size:14px; color:var(--phos); margin:2px 0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;
+  }
+  .chip-count{font-size:30px; font-weight:bold; color:var(--amber); line-height:1.05;}
+  .chip-status{font-size:11px; letter-spacing:0.06em; color:var(--phos-dim); margin-top:2px;}
+  .chip-status.active{color:var(--amber);}
+  .chip-actions{margin-top:6px;}
+  .chipBtn{
+    background:var(--amber); color:#FFFFFF; border:none; font-family:inherit;
+    font-size:12px; font-weight:bold; padding:4px 8px; white-space:nowrap;
+  }
+  .chipBtn.reopen{background:var(--phos-dim);}
+
+  /* party list */
+  .p-count{font-weight:bold; color:var(--amber); min-width:28px; text-align:right; font-size:24px;}
+  .startBtn{
+    background:var(--amber); color:#FFFFFF; border:none; font-family:inherit;
+    font-size:13px; font-weight:bold; padding:5px 8px; white-space:nowrap;
+  }
+  .empty{color:var(--phos-dim); font-size:14px; padding:6px 2px;}
+
+  #addForm{display:flex; gap:6px; margin-top:8px;}
+  #addInput{
+    flex:1; background:#FFFFFF; border:1px solid var(--line); color:var(--phos);
+    font-family:inherit; font-size:15px; padding:8px;
+  }
+  #addBtn{
+    background:var(--phos); color:#F2F3EC; border:none; font-family:inherit;
+    font-size:18px; padding:0 12px; font-weight:bold;
+  }
+
+  /* log */
+  #log, #detailLog{max-height:220px; overflow-y:auto;}
+  .logRow{
+    display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:14px;
+    padding:5px 2px; border-bottom:1px solid var(--line);
+  }
+  .logRow:last-child{border-bottom:none;}
+  .logCode{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .logTime{color:var(--phos-dim); white-space:nowrap;}
+  .logDelBtn{
+    background:transparent; border:1px solid var(--err); color:var(--err);
+    font-family:inherit; font-size:13px; padding:4px 8px; cursor:pointer; white-space:nowrap;
+  }
+  .logDelBtn.confirming{background:var(--err); color:#FFFFFF; font-weight:bold;}
+
+  .footerRow{display:flex; gap:8px; margin-top:4px;}
+  #exportBtn, #exportAllBtn, #exportTruckBtn{
+    flex:1; background:var(--phos); color:#F2F3EC; border:none;
+    font-family:inherit; font-size:13px; font-weight:bold; padding:9px; letter-spacing:0.05em;
+  }
+  #exportAllBtn, #exportTruckBtn{width:100%; margin-top:8px;}
+  #deleteTruckBtn{
+    width:100%; margin-top:8px;
+    background:transparent; border:1px solid var(--err); color:var(--err);
+    font-family:inherit; font-size:12px; font-weight:bold; padding:10px; letter-spacing:0.05em;
+  }
+  #deleteTruckBtn.confirming{background:var(--err); color:#FFFFFF;}
+  #resetBtn{
+    flex:1; background:transparent; border:1px solid var(--line);
+    color:var(--phos-dim); font-family:inherit; font-size:13px; padding:8px; letter-spacing:0.05em;
+  }
+  #saveStatus{
+    text-align:center; font-size:12px; letter-spacing:0.1em; color:var(--phos-dim);
+    margin-top:8px; min-height:14px;
+  }
+  #saveStatus.bad{color:var(--err); font-weight:bold;}
+
+  /* record lists (trucks) */
+  .recordList{list-style:none; margin:0; padding:0; max-height:320px; overflow-y:auto;}
+  .recordList li{
+    display:flex; flex-direction:column; gap:2px;
+    padding:9px 6px; border-bottom:1px solid var(--line);
+    font-size:15px; cursor:pointer;
+  }
+  .recordList li:last-child{border-bottom:none;}
+  .rl-top{display:flex; justify-content:space-between; align-items:center;}
+  .rl-truck{font-weight:bold; color:var(--phos);}
+  .rl-count{font-weight:bold; color:var(--amber); font-size:21px;}
+  .rl-sub{font-size:13px; color:var(--phos-dim); display:flex; justify-content:space-between;}
+  .rl-badge{font-size:11px; padding:1px 6px; border:1px solid currentColor; letter-spacing:0.06em;}
+  .rl-badge.active{color:var(--amber);}
+  .rl-badge.done{color:var(--phos-dim);}
+  .rlDelBtn{
+    margin-top:6px; width:100%;
+    background:transparent; border:1px solid var(--err); color:var(--err);
+    font-family:inherit; font-size:12px; font-weight:bold; padding:6px; letter-spacing:0.04em;
+  }
+  .rlDelBtn.confirming{background:var(--err); color:#FFFFFF;}
+
+  .detailRow{display:flex; justify-content:space-between; font-size:15px; padding:4px 0;}
+  .detailRow span:first-child{color:var(--phos-dim);}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- ============ HOME VIEW ============ -->
+  <div id="view-home" class="view">
+    <div class="hdr">
+      <div class="hdr-top"><span>WAREHOUSE FLOOR</span><span id="clockHome">--:--:--</span></div>
+      <div class="hdr-title">CARTON SCANNER</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">WAREHOUSE</div>
+      <div class="whRow">
+        <button type="button" class="whBtn" id="whBtnGJ">GUJARAT (143)</button>
+        <button type="button" class="whBtn" id="whBtnMZ">MANESAR (142)</button>
+      </div>
+      <div id="warehouseHint" class="whHint"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">NEW TRUCK ENTRY</div>
+      <form id="truckForm">
+        <label class="fieldLabel">TRUCK NO</label>
+        <input id="truckNoInput" class="textInput" placeholder="e.g. MH12AB1234" autocomplete="off" />
+        <label class="fieldLabel">TPT NAME</label>
+        <input id="tptNameInput" class="textInput" placeholder="Transporter name" autocomplete="off" />
+        <label class="fieldLabel">DATE</label>
+        <input id="truckDateInput" class="textInput" type="date" />
+        <button id="startTruckBtn" type="submit" class="primaryBtn">START LOADING &gt;&gt;</button>
+        <div id="truckFormMsg" class="formMsg"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">IN-PROGRESS TRUCKS</div>
+      <ul id="inProgressList" class="recordList"></ul>
+      <div id="inProgressEmpty" class="empty">No trucks in progress.</div>
+    </div>
+
+    <button id="viewRecordsBtn" class="secondaryBtn" type="button">VIEW PAST RECORDS</button>
+  </div>
+
+  <!-- ============ SCAN VIEW ============ -->
+  <div id="view-scan" class="view">
+    <div class="hdr">
+      <button class="backBtn" id="scanBackBtn" type="button">&lt; TRUCKS (SAVE &amp; PAUSE)</button>
+      <div class="hdr-title" id="scanTruckTitle">TRUCK ------</div>
+      <div class="hdr-sub" id="scanTruckSub">TPT — DATE</div>
+      <div class="hdr-row">
+        <span id="activeTag" class="tag warn">NO ACTIVE SEQ NO</span>
+        <span class="hdr-total" id="totalNum">0000</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">SEQ NO</div>
+      <ol id="partyList"></ol>
+      <div id="partyEmpty" class="empty" style="display:none;">No sequences yet. Add one below.</div>
+      <form id="addForm">
+        <input id="addInput" placeholder="SEQ NO" />
+        <button id="addBtn" type="submit">+</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">SCAN &nbsp;[ENTER = ADD]</div>
+      <form id="scanForm">
+        <input id="scanInput" inputmode="numeric" autocomplete="off" placeholder="START A SEQ NO TO SCAN" disabled />
+        <button id="scanBtn" type="submit" disabled>ADD</button>
+      </form>
+      <div id="flashLine"></div>
+      <button id="completeBtn" style="display:none;" type="button">MARK SEQ NO COMPLETE &amp; ADVANCE &gt;&gt;</button>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title" id="logTitle">RECENT SCANS</div>
+      <div id="log"></div>
+    </div>
+
+    <div class="footerRow">
+      <button id="exportBtn" type="button">EXPORT TRUCK</button>
+      <button id="resetBtn" type="button">RESET TRUCK</button>
+    </div>
+    <button id="finishTruckBtn" type="button">FINISH TRUCK &amp; RETURN TO LIST</button>
+    <div id="saveStatus"></div>
+  </div>
+
+  <!-- ============ RECORDS VIEW ============ -->
+  <div id="view-records" class="view">
+    <div class="hdr">
+      <button class="backBtn" id="recordsBackBtn" type="button">&lt; BACK</button>
+      <div class="hdr-title">PAST RECORDS</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">SEARCH</div>
+      <label class="fieldLabel">DATE</label>
+      <input id="searchDateInput" class="textInput" type="date" />
+      <label class="fieldLabel">TRUCK NO</label>
+      <input id="searchTruckInput" class="textInput" placeholder="Search truck no" autocomplete="off" />
+      <div class="footerRow">
+        <button id="searchBtn" class="primaryBtn" type="button" style="margin-top:10px;">SEARCH</button>
+        <button id="clearSearchBtn" class="secondaryBtn" type="button" style="margin-top:10px;">CLEAR</button>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">RESULTS</div>
+      <ul id="recordsList" class="recordList"></ul>
+      <div id="recordsEmpty" class="empty">No matching records.</div>
+    </div>
+    <button id="exportAllBtn" type="button">EXPORT ALL TO EXCEL</button>
+  </div>
+
+  <!-- ============ DETAIL VIEW ============ -->
+  <div id="view-detail" class="view">
+    <div class="hdr">
+      <button class="backBtn" id="detailBackBtn" type="button">&lt; BACK</button>
+      <div class="hdr-title" id="detailTitle">TRUCK DETAIL</div>
+    </div>
+    <div class="panel" id="detailSummary"></div>
+    <div class="panel">
+      <div class="panel-title">SEQ NO BREAKDOWN</div>
+      <ul id="detailPartyList" class="recordList"></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-title">SCAN LOG</div>
+      <div id="detailLog"></div>
+    </div>
+    <button id="exportTruckBtn" type="button">EXPORT THIS TRUCK</button>
+    <button id="deleteTruckBtn" type="button">DELETE THIS RECORD</button>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  const WAREHOUSES = {
+    GJ: { name: 'Gujarat', prefix: '143' },
+    MZ: { name: 'Manesar', prefix: '142' }
+  };
+  let currentWarehouse = null; // 'GJ' | 'MZ' — this device's default warehouse
+  function prefixFor(warehouseKey){
+    return (warehouseKey && WAREHOUSES[warehouseKey]) ? WAREHOUSES[warehouseKey].prefix : '143';
+  }
+  function codeMatchesPrefix(code, prefix){
+    if(!prefix) return false;
+    const re = new RegExp('^' + prefix + '\\d{' + (12 - prefix.length) + '}$');
+    return re.test(code);
+  }
+  const PSTATUS = { QUEUED:"queued", ACTIVE:"active", DONE:"done" };
+  const TSTATUS = { ACTIVE:"active", DONE:"done" };
+
+  let trucks = [];
+  let parties = [];
+  let entries = [];
+  let currentView = 'home';
+  let currentTruckId = null;
+  let detailTruckId = null;
+  let flashTimer = null;
+
+  const storage = {
+    async get(key){
+      const v = localStorage.getItem(key);
+      return v === null ? null : { key, value: v };
+    },
+    async set(key, value){
+      localStorage.setItem(key, value);
+      return { key, value };
+    }
+  };
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+  const el = {
+    // home
+    clockHome: document.getElementById('clockHome'),
+    warehouseHint: document.getElementById('warehouseHint'),
+    warehouseButtons: { GJ: document.getElementById('whBtnGJ'), MZ: document.getElementById('whBtnMZ') },
+    truckForm: document.getElementById('truckForm'),
+    truckNoInput: document.getElementById('truckNoInput'),
+    tptNameInput: document.getElementById('tptNameInput'),
+    truckDateInput: document.getElementById('truckDateInput'),
+    truckFormMsg: document.getElementById('truckFormMsg'),
+    inProgressList: document.getElementById('inProgressList'),
+    inProgressEmpty: document.getElementById('inProgressEmpty'),
+    viewRecordsBtn: document.getElementById('viewRecordsBtn'),
+    // scan
+    scanBackBtn: document.getElementById('scanBackBtn'),
+    scanTruckTitle: document.getElementById('scanTruckTitle'),
+    scanTruckSub: document.getElementById('scanTruckSub'),
+    scanForm: document.getElementById('scanForm'),
+    scanInput: document.getElementById('scanInput'),
+    scanBtn: document.getElementById('scanBtn'),
+    flashLine: document.getElementById('flashLine'),
+    completeBtn: document.getElementById('completeBtn'),
+    finishTruckBtn: document.getElementById('finishTruckBtn'),
+    partyList: document.getElementById('partyList'),
+    partyEmpty: document.getElementById('partyEmpty'),
+    addForm: document.getElementById('addForm'),
+    addInput: document.getElementById('addInput'),
+    log: document.getElementById('log'),
+    logTitle: document.getElementById('logTitle'),
+    totalNum: document.getElementById('totalNum'),
+    activeTag: document.getElementById('activeTag'),
+    resetBtn: document.getElementById('resetBtn'),
+    exportBtn: document.getElementById('exportBtn'),
+    saveStatus: document.getElementById('saveStatus'),
+    // records
+    recordsBackBtn: document.getElementById('recordsBackBtn'),
+    searchDateInput: document.getElementById('searchDateInput'),
+    searchTruckInput: document.getElementById('searchTruckInput'),
+    searchBtn: document.getElementById('searchBtn'),
+    clearSearchBtn: document.getElementById('clearSearchBtn'),
+    recordsList: document.getElementById('recordsList'),
+    recordsEmpty: document.getElementById('recordsEmpty'),
+    exportAllBtn: document.getElementById('exportAllBtn'),
+    // detail
+    detailBackBtn: document.getElementById('detailBackBtn'),
+    detailTitle: document.getElementById('detailTitle'),
+    detailSummary: document.getElementById('detailSummary'),
+    detailPartyList: document.getElementById('detailPartyList'),
+    detailLog: document.getElementById('detailLog'),
+    exportTruckBtn: document.getElementById('exportTruckBtn'),
+    deleteTruckBtn: document.getElementById('deleteTruckBtn'),
+  };
+
+  // ---------- persistence ----------
+  async function saveKey(key, val){
+    try{
+      const str = typeof val === 'string' ? val : JSON.stringify(val);
+      const r = await storage.set(key, str);
+      if(!r) throw new Error('no result');
+      showSaveStatus('SAVED', false);
+      return true;
+    }catch(e){
+      showSaveStatus('SAVE FAILED — DATA MAY NOT SURVIVE RELOAD', true);
+      return false;
+    }
+  }
+  const saveTrucks = ()=>saveKey('ccount_rf:trucks', trucks);
+  const saveParties = ()=>saveKey('ccount_rf:parties', parties);
+  const saveEntries = ()=>saveKey('ccount_rf:entries', entries);
+  const saveUI = ()=>saveKey('ccount_rf:ui', { view: currentView, currentTruckId, detailTruckId });
+
+  function showSaveStatus(msg, isBad){
+    if(!el.saveStatus) return;
+    el.saveStatus.textContent = msg;
+    el.saveStatus.className = isBad ? 'bad' : '';
+  }
+
+  async function loadAll(){
+    try{ const r = await storage.get('ccount_rf:trucks'); if(r && r.value) trucks = JSON.parse(r.value); }catch(e){}
+    try{ const r = await storage.get('ccount_rf:parties'); if(r && r.value) parties = JSON.parse(r.value); }catch(e){}
+    try{ const r = await storage.get('ccount_rf:entries'); if(r && r.value) entries = JSON.parse(r.value); }catch(e){}
+    try{ const r = await storage.get('ccount_rf:warehouse'); if(r && r.value && WAREHOUSES[r.value]) currentWarehouse = r.value; }catch(e){}
+    let ui = {};
+    try{ const r = await storage.get('ccount_rf:ui'); if(r && r.value) ui = JSON.parse(r.value); }catch(e){}
+    currentView = ui.view || 'home';
+    currentTruckId = ui.currentTruckId || null;
+    detailTruckId = ui.detailTruckId || null;
+    if(currentView === 'scan' && !trucks.find(t=>t.id===currentTruckId && t.status===TSTATUS.ACTIVE)){ currentView = 'home'; currentTruckId = null; }
+    if(currentView === 'detail' && !trucks.find(t=>t.id===detailTruckId)){ currentView = 'home'; detailTruckId = null; }
+
+    const restoredCount = entries.length;
+    setView(currentView, true);
+    if(restoredCount > 0) showSaveStatus('RESTORED ' + restoredCount + ' SCAN(S) FROM LAST SESSION', false);
+    else showSaveStatus('READY', false);
+  }
+
+  // ---------- helpers ----------
+  function partiesFor(truckId){ return parties.filter(p=>p.truckId===truckId); }
+  function activePartyFor(truckId){ return partiesFor(truckId).find(p=>p.status===PSTATUS.ACTIVE); }
+  function nextQueuedFor(truckId){ return partiesFor(truckId).find(p=>p.status===PSTATUS.QUEUED); }
+  function countForParty(partyId){ return entries.filter(e=>e.partyId===partyId).length; }
+  function totalForTruck(truckId){ return entries.filter(e=>e.truckId===truckId).length; }
+
+  function flash(type, msg){
+    clearTimeout(flashTimer);
+    el.flashLine.className = type;
+    el.flashLine.textContent = msg;
+    flashTimer = setTimeout(()=>{ el.flashLine.textContent=''; el.flashLine.className=''; }, 2600);
+  }
+
+  function focusScan(){
+    if(currentView==='scan' && el.scanInput && !el.scanInput.disabled) el.scanInput.focus();
+  }
+
+  // ---------- view management ----------
+  function setView(v, skipSave){
+    currentView = v;
+    document.getElementById('view-home').style.display = v==='home' ? 'block' : 'none';
+    document.getElementById('view-scan').style.display = v==='scan' ? 'block' : 'none';
+    document.getElementById('view-records').style.display = v==='records' ? 'block' : 'none';
+    document.getElementById('view-detail').style.display = v==='detail' ? 'block' : 'none';
+    if(v==='home') renderHome();
+    if(v==='scan') renderScan();
+    if(v==='records') renderRecords();
+    if(v==='detail') renderDetail();
+    if(!skipSave) saveUI();
+    if(v==='scan') focusScan();
+  }
+
+  // ---------- HOME ----------
+  function renderHome(){
+    if(!el.truckDateInput.value) el.truckDateInput.value = todayStr();
+
+    Object.keys(WAREHOUSES).forEach(key=>{
+      const btn = el.warehouseButtons[key];
+      if(btn) btn.classList.toggle('selected', currentWarehouse === key);
+    });
+    el.warehouseHint.textContent = currentWarehouse
+      ? ('Cartons must start with ' + WAREHOUSES[currentWarehouse].prefix)
+      : 'Select this terminal\'s warehouse before starting a truck.';
+
+    const inProgress = trucks.filter(t=>t.status===TSTATUS.ACTIVE).slice().sort((a,b)=> b.createdAt.localeCompare(a.createdAt));
+    el.inProgressList.innerHTML = '';
+    el.inProgressEmpty.style.display = inProgress.length ? 'none' : 'block';
+    inProgress.forEach(t=>{
+      const whName = t.warehouse && WAREHOUSES[t.warehouse] ? WAREHOUSES[t.warehouse].name : 'Gujarat';
+      const li = document.createElement('li');
+      const isPending = pendingDeleteInProgress === t.id;
+      li.innerHTML =
+        '<div class="rl-top"><span class="rl-truck">'+escapeHtml(t.truckNo)+'</span>'+
+        '<span class="rl-count">'+totalForTruck(t.id)+'</span></div>'+
+        '<div class="rl-sub"><span>'+escapeHtml(t.tptName)+' — '+escapeHtml(t.date)+' — '+escapeHtml(whName)+'</span>'+
+        '<span class="rl-badge active">IN PROGRESS</span></div>';
+      li.addEventListener('click', ()=>resumeTruck(t.id));
+
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'rlDelBtn' + (isPending ? ' confirming' : '');
+      delBtn.textContent = isPending ? 'TAP TO CONFIRM DELETE' : 'DELETE TRUCK';
+      delBtn.addEventListener('click', (ev)=>{
+        ev.stopPropagation();
+        handleDeleteInProgressClick(t.id);
+      });
+      li.appendChild(delBtn);
+
+      el.inProgressList.appendChild(li);
+    });
+  }
+
+  let pendingDeleteInProgress = null;
+  function handleDeleteInProgressClick(id){
+    if(pendingDeleteInProgress === id){
+      pendingDeleteInProgress = null;
+      trucks = trucks.filter(t=>t.id!==id);
+      parties = parties.filter(p=>p.truckId!==id);
+      entries = entries.filter(e=>e.truckId!==id);
+      saveTrucks(); saveParties(); saveEntries();
+      if(currentTruckId === id) currentTruckId = null;
+      renderHome();
+    } else {
+      pendingDeleteInProgress = id;
+      renderHome();
+      setTimeout(()=>{
+        if(pendingDeleteInProgress === id){ pendingDeleteInProgress = null; renderHome(); }
+      }, 3000);
+    }
+  }
+
+  function startTruck(ev){
+    ev.preventDefault();
+    const truckNo = el.truckNoInput.value.trim().toUpperCase();
+    const tptName = el.tptNameInput.value.trim();
+    const date = el.truckDateInput.value || todayStr();
+    if(!currentWarehouse){
+      el.truckFormMsg.textContent = 'Select a warehouse above first.';
+      el.truckFormMsg.style.display = 'block';
+      return;
+    }
+    if(!truckNo || !tptName){
+      el.truckFormMsg.textContent = 'Enter both Truck No and TPT Name to continue.';
+      el.truckFormMsg.style.display = 'block';
+      return;
+    }
+    el.truckFormMsg.style.display = 'none';
+    const truck = { id: uid(), truckNo, tptName, date, warehouse: currentWarehouse, status: TSTATUS.ACTIVE, createdAt: new Date().toISOString(), completedAt: null };
+    trucks.push(truck);
+    saveTrucks();
+    el.truckNoInput.value = '';
+    el.tptNameInput.value = '';
+    currentTruckId = truck.id;
+    setView('scan');
+  }
+
+  function selectWarehouse(key){
+    currentWarehouse = key;
+    saveKey('ccount_rf:warehouse', key);
+    renderHome();
+  }
+
+  function resumeTruck(id){
+    currentTruckId = id;
+    setView('scan');
+  }
+
+  // ---------- SCAN ----------
+  function renderScan(){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck){ setView('home'); return; }
+    if(!pendingFinish) el.finishTruckBtn.textContent = 'FINISH TRUCK & RETURN TO LIST';
+    if(!pendingReset) el.resetBtn.textContent = 'RESET TRUCK';
+    el.scanTruckTitle.textContent = truck.truckNo;
+    el.scanTruckSub.textContent = truck.tptName + ' — ' + truck.date;
+
+    const ap = activePartyFor(truck.id);
+    const nq = nextQueuedFor(truck.id);
+
+    el.totalNum.textContent = String(totalForTruck(truck.id)).padStart(4,'0');
+    if(ap){
+      el.activeTag.textContent = 'LOADING: ' + ap.name.toUpperCase();
+      el.activeTag.className = 'tag ok';
+    } else {
+      el.activeTag.textContent = 'NO ACTIVE SEQ NO';
+      el.activeTag.className = 'tag warn';
+    }
+
+    el.scanInput.disabled = !ap;
+    el.scanBtn.disabled = !ap;
+    el.scanInput.placeholder = ap ? ('SCAN 12-DIGIT CODE (' + prefixFor(truck.warehouse) + '...)') : 'START A SEQ NO TO SCAN';
+    el.completeBtn.style.display = ap ? 'block' : 'none';
+
+    const tParties = partiesFor(truck.id);
+    el.partyList.innerHTML = '';
+    el.partyEmpty.style.display = tParties.length ? 'none' : 'block';
+    tParties.forEach((p,i)=>{
+      const chip = document.createElement('li');
+      const isNext = (p.status===PSTATUS.QUEUED && nq && p.id===nq.id && !ap);
+      chip.className = 'seqChip' + (p.status===PSTATUS.ACTIVE ? ' active' : p.status===PSTATUS.DONE ? ' done' : '') + (isNext ? ' next' : '');
+      let html =
+        '<div class="chip-idx">LOADING SEQ ' + String(i+1).padStart(2,'0') + '</div>' +
+        '<div class="chip-name">' + escapeHtml(p.name) + '</div>' +
+        '<div class="chip-count">' + countForParty(p.id) + '</div>' +
+        '<div class="chip-status' + (p.status===PSTATUS.ACTIVE ? ' active' : '') + '">' +
+          (p.status===PSTATUS.ACTIVE ? 'LOADING NOW' : p.status===PSTATUS.DONE ? 'COMPLETE' : 'QUEUED') +
+        '</div>';
+      chip.innerHTML = html;
+      if(isNext){
+        const actions = document.createElement('div'); actions.className='chip-actions';
+        const btn = document.createElement('button');
+        btn.className='chipBtn'; btn.type='button'; btn.textContent='START';
+        btn.onclick = ()=>startParty(p.id);
+        actions.appendChild(btn);
+        chip.appendChild(actions);
+      } else if(p.status===PSTATUS.DONE){
+        const actions = document.createElement('div'); actions.className='chip-actions';
+        const btn = document.createElement('button');
+        btn.className='chipBtn reopen'; btn.type='button'; btn.textContent='◀ BACK';
+        btn.onclick = ()=>reopenParty(p.id);
+        actions.appendChild(btn);
+        chip.appendChild(actions);
+      }
+      el.partyList.appendChild(chip);
+    });
+
+    el.logTitle.textContent = 'RECENT SCANS' + (ap ? ' — ' + ap.name.toUpperCase() : '');
+    const relevant = entries.filter(e=> e.truckId===truck.id && (!ap || e.partyId===ap.id)).slice().reverse().slice(0,25);
+    el.log.innerHTML = '';
+    if(relevant.length===0){
+      const d = document.createElement('div'); d.className='empty'; d.textContent='No scans yet.';
+      el.log.appendChild(d);
+    } else {
+      relevant.forEach(en=>{
+        const owner = parties.find(p=>p.id===en.partyId);
+        const canDelete = owner && owner.status !== PSTATUS.DONE;
+        const row = document.createElement('div'); row.className='logRow';
+        const code = document.createElement('span'); code.className='logCode'; code.textContent = en.code;
+        const t = document.createElement('span'); t.className='logTime';
+        t.textContent = new Date(en.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        row.appendChild(code); row.appendChild(t);
+        if(canDelete){
+          const del = document.createElement('button');
+          const pending = pendingDelete === en.code;
+          del.className = 'logDelBtn' + (pending ? ' confirming' : '');
+          del.type = 'button';
+          del.textContent = pending ? 'TAP TO CONFIRM' : 'DEL';
+          del.onclick = ()=>handleDeleteClick(en.code);
+          row.appendChild(del);
+        }
+        el.log.appendChild(row);
+      });
+    }
+  }
+
+  function startParty(id){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck || activePartyFor(truck.id)) return;
+    parties = parties.map(p=> p.id===id ? {...p, status:PSTATUS.ACTIVE} : p);
+    saveParties(); renderScan(); focusScan();
+  }
+
+  function reopenParty(id){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck) return;
+    const target = parties.find(p=>p.id===id);
+    if(!target) return;
+    const ap = activePartyFor(truck.id);
+    if(ap && ap.id === id) return;
+    parties = parties.map(p=>{
+      if(p.id === id) return { ...p, status: PSTATUS.ACTIVE };
+      if(ap && p.id === ap.id) return { ...p, status: PSTATUS.QUEUED };
+      return p;
+    });
+    saveParties();
+    flash('ok', 'BACK TO ' + target.name.toUpperCase());
+    renderScan(); focusScan();
+  }
+
+  let pendingDelete = null;
+  function handleDeleteClick(code){
+    if(pendingDelete === code){
+      pendingDelete = null;
+      entries = entries.filter(e=>e.code!==code);
+      saveEntries();
+      flash('ok', 'DELETED ' + code);
+      renderScan(); focusScan();
+    } else {
+      pendingDelete = code;
+      renderScan();
+      setTimeout(()=>{
+        if(pendingDelete === code){ pendingDelete = null; renderScan(); }
+      }, 3000);
+    }
+  }
+
+  function completeActive(){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck) return;
+    const ap = activePartyFor(truck.id);
+    if(!ap) return;
+    parties = parties.map(p=> p.id===ap.id ? {...p, status:PSTATUS.DONE} : p);
+    saveParties();
+    flash('ok', ap.name.toUpperCase() + ' MARKED COMPLETE');
+    renderScan(); focusScan();
+  }
+
+  function submitScan(ev){
+    ev.preventDefault();
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    const code = el.scanInput.value.trim();
+    el.scanInput.value = '';
+    el.scanInput.classList.remove('err');
+    if(!code || !truck) return;
+    const ap = activePartyFor(truck.id);
+    if(!ap){ flash('err','NO ACTIVE SEQ NO. START ONE FIRST.'); return; }
+    const prefix = prefixFor(truck.warehouse);
+    if(!codeMatchesPrefix(code, prefix)){
+      flash('err','INVALID — NEED 12 DIGITS STARTING ' + prefix);
+      el.scanInput.classList.add('err');
+      focusScan();
+      return;
+    }
+    const dup = entries.find(en=>en.code===code);
+    if(dup){
+      const dupTruck = trucks.find(t=>t.id===dup.truckId);
+      const where = dupTruck ? (dupTruck.truckNo + ' / ' + dupTruck.date) : 'another record';
+      flash('err','DUPLICATE — ' + code + ' already on ' + where);
+      focusScan();
+      return;
+    }
+    entries.push({ code, truckId: truck.id, partyId: ap.id, partyName: ap.name, ts: new Date().toISOString() });
+    saveEntries();
+    flash('ok','ADDED ' + code);
+    renderScan();
+    focusScan();
+  }
+
+  function submitAdd(ev){
+    ev.preventDefault();
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    const name = el.addInput.value.trim();
+    if(!name || !truck) return;
+    parties.push({ id: uid(), truckId: truck.id, name, status: PSTATUS.QUEUED });
+    el.addInput.value = '';
+    saveParties();
+    renderScan();
+    focusScan();
+  }
+
+  function backToTrucks(){
+    currentTruckId = null;
+    setView('home');
+  }
+
+  let pendingFinish = false;
+  function handleFinishClick(){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck) return;
+    if(pendingFinish){
+      pendingFinish = false;
+      trucks = trucks.map(t=> t.id===truck.id ? {...t, status:TSTATUS.DONE, completedAt:new Date().toISOString()} : t);
+      saveTrucks();
+      currentTruckId = null;
+      setView('home');
+    } else {
+      pendingFinish = true;
+      el.finishTruckBtn.textContent = 'TAP AGAIN TO CONFIRM FINISH';
+      setTimeout(()=>{
+        if(pendingFinish){ pendingFinish = false; el.finishTruckBtn.textContent = 'FINISH TRUCK & RETURN TO LIST'; }
+      }, 3000);
+    }
+  }
+
+  let pendingReset = false;
+  function handleResetClick(){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck) return;
+    if(pendingReset){
+      pendingReset = false;
+      parties = parties.filter(p=>p.truckId!==truck.id);
+      entries = entries.filter(e=>e.truckId!==truck.id);
+      saveParties(); saveEntries();
+      el.resetBtn.textContent = 'RESET TRUCK';
+      renderScan(); focusScan();
+    } else {
+      pendingReset = true;
+      el.resetBtn.textContent = 'TAP AGAIN TO CONFIRM';
+      setTimeout(()=>{
+        if(pendingReset){ pendingReset = false; el.resetBtn.textContent = 'RESET TRUCK'; }
+      }, 3000);
+    }
+  }
+
+  // ---------- RECORDS ----------
+  function renderRecords(){
+    const dateFilter = el.searchDateInput.value;
+    const truckFilter = el.searchTruckInput.value.trim().toUpperCase();
+    let list = trucks.slice();
+    if(dateFilter) list = list.filter(t=>t.date===dateFilter);
+    if(truckFilter) list = list.filter(t=>t.truckNo.toUpperCase().includes(truckFilter));
+    list.sort((a,b)=> b.createdAt.localeCompare(a.createdAt));
+
+    el.recordsList.innerHTML = '';
+    el.recordsEmpty.style.display = list.length ? 'none' : 'block';
+    list.forEach(t=>{
+      const li = document.createElement('li');
+      li.innerHTML =
+        '<div class="rl-top"><span class="rl-truck">'+escapeHtml(t.truckNo)+'</span>'+
+        '<span class="rl-count">'+totalForTruck(t.id)+'</span></div>'+
+        '<div class="rl-sub"><span>'+escapeHtml(t.tptName)+' — '+escapeHtml(t.date)+'</span>'+
+        '<span class="rl-badge '+(t.status===TSTATUS.DONE?'done':'active')+'">'+(t.status===TSTATUS.DONE?'COMPLETE':'IN PROGRESS')+'</span></div>';
+      li.addEventListener('click', ()=>{ detailTruckId = t.id; setView('detail'); });
+      el.recordsList.appendChild(li);
+    });
+  }
+
+  // ---------- DETAIL ----------
+  function renderDetail(){
+    const truck = trucks.find(t=>t.id===detailTruckId);
+    if(!truck){ setView('records'); return; }
+    if(!pendingDeleteTruck) el.deleteTruckBtn.textContent = 'DELETE THIS RECORD';
+    el.detailTitle.textContent = truck.truckNo;
+    const total = totalForTruck(truck.id);
+    el.detailSummary.innerHTML =
+      row('TPT NAME', truck.tptName) +
+      row('DATE', truck.date) +
+      row('STATUS', truck.status===TSTATUS.DONE ? 'COMPLETE' : 'IN PROGRESS') +
+      row('TOTAL CARTONS', String(total)) +
+      row('STARTED', new Date(truck.createdAt).toLocaleString()) +
+      (truck.completedAt ? row('FINISHED', new Date(truck.completedAt).toLocaleString()) : '');
+
+    const tParties = partiesFor(truck.id);
+    el.detailPartyList.innerHTML = '';
+    if(tParties.length===0){
+      el.detailPartyList.innerHTML = '<div class="empty">No sequences recorded.</div>';
+    } else {
+      tParties.forEach(p=>{
+        const li = document.createElement('li');
+        li.style.cursor = 'default';
+        li.innerHTML =
+          '<div class="rl-top"><span class="rl-truck">'+escapeHtml(p.name)+'</span>'+
+          '<span class="rl-count">'+countForParty(p.id)+'</span></div>'+
+          '<div class="rl-sub"><span>'+p.status.toUpperCase()+'</span></div>';
+        el.detailPartyList.appendChild(li);
+      });
+    }
+
+    const tEntries = entries.filter(e=>e.truckId===truck.id).slice().reverse();
+    el.detailLog.innerHTML = '';
+    if(tEntries.length===0){
+      el.detailLog.innerHTML = '<div class="empty">No scans recorded.</div>';
+    } else {
+      tEntries.forEach(en=>{
+        const row = document.createElement('div'); row.className='logRow';
+        const code = document.createElement('span'); code.textContent = en.code + '  (' + en.partyName + ')';
+        const t = document.createElement('span'); t.className='logTime';
+        t.textContent = new Date(en.ts).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+        row.appendChild(code); row.appendChild(t);
+        el.detailLog.appendChild(row);
+      });
+    }
+  }
+
+  function row(label, val){
+    return '<div class="detailRow"><span>'+label+'</span><span>'+escapeHtml(String(val))+'</span></div>';
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ---------- CSV EXPORT ----------
+  function csvField(v){
+    const s = String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }
+
+  function buildCsvForEntries(entriesList){
+    const sorted = entriesList.slice().sort((a,b)=> a.ts.localeCompare(b.ts));
+    const lines = [];
+    lines.push(['Date','Time','Warehouse','Truck No','TPT Name','Seq No','Carton No'].map(csvField).join(','));
+    sorted.forEach(en=>{
+      const truck = trucks.find(t=>t.id===en.truckId) || { truckNo:'', tptName:'', warehouse:null };
+      const whName = truck.warehouse && WAREHOUSES[truck.warehouse] ? WAREHOUSES[truck.warehouse].name : 'Gujarat';
+      const d = new Date(en.ts);
+      lines.push([
+        d.toLocaleDateString(),
+        d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}),
+        whName,
+        truck.truckNo,
+        truck.tptName,
+        en.partyName,
+        en.code
+      ].map(csvField).join(','));
+    });
+    return lines;
+  }
+
+  function downloadCsv(lines, filename){
+    const csvContent = '\uFEFF' + lines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }
+
+  function exportCurrentTruck(){
+    const truck = trucks.find(t=>t.id===currentTruckId);
+    if(!truck){ flash('err','NO TRUCK SELECTED'); return; }
+    const tEntries = entries.filter(e=>e.truckId===truck.id);
+    if(tEntries.length===0){ flash('err','NOTHING TO EXPORT YET'); return; }
+    downloadCsv(buildCsvForEntries(tEntries), 'truck-' + truck.truckNo.replace(/\s+/g,'') + '-' + truck.date + '.csv');
+    flash('ok','EXPORTED ' + truck.truckNo);
+  }
+
+  function exportDetailTruck(){
+    const truck = trucks.find(t=>t.id===detailTruckId);
+    if(!truck) return;
+    const tEntries = entries.filter(e=>e.truckId===truck.id);
+    downloadCsv(buildCsvForEntries(tEntries), 'truck-' + truck.truckNo.replace(/\s+/g,'') + '-' + truck.date + '.csv');
+  }
+
+  let pendingDeleteTruck = false;
+  function handleDeleteTruckClick(){
+    const truck = trucks.find(t=>t.id===detailTruckId);
+    if(!truck) return;
+    if(pendingDeleteTruck){
+      pendingDeleteTruck = false;
+      trucks = trucks.filter(t=>t.id!==truck.id);
+      parties = parties.filter(p=>p.truckId!==truck.id);
+      entries = entries.filter(e=>e.truckId!==truck.id);
+      saveTrucks(); saveParties(); saveEntries();
+      detailTruckId = null;
+      setView('records');
+    } else {
+      pendingDeleteTruck = true;
+      el.deleteTruckBtn.textContent = 'TAP AGAIN TO CONFIRM DELETE';
+      setTimeout(()=>{
+        if(pendingDeleteTruck){ pendingDeleteTruck = false; el.deleteTruckBtn.textContent = 'DELETE THIS RECORD'; }
+      }, 3000);
+    }
+  }
+
+  function exportAllTrucks(){
+    if(entries.length===0){ alert('No scans to export yet.'); return; }
+    const stamp = new Date().toISOString().slice(0,16).replace(/[-:T]/g,'').replace(/(\d{8})(\d{4})/,'$1-$2');
+    downloadCsv(buildCsvForEntries(entries), 'all-trucks-manifest-' + stamp + '.csv');
+  }
+
+  // ---------- events ----------
+  el.truckForm.addEventListener('submit', startTruck);
+  el.warehouseButtons.GJ.addEventListener('click', ()=>selectWarehouse('GJ'));
+  el.warehouseButtons.MZ.addEventListener('click', ()=>selectWarehouse('MZ'));
+  el.viewRecordsBtn.addEventListener('click', ()=>setView('records'));
+
+  el.scanBackBtn.addEventListener('click', backToTrucks);
+  el.scanForm.addEventListener('submit', submitScan);
+  el.addForm.addEventListener('submit', submitAdd);
+  el.completeBtn.addEventListener('click', completeActive);
+  el.finishTruckBtn.addEventListener('click', handleFinishClick);
+  el.resetBtn.addEventListener('click', handleResetClick);
+  el.exportBtn.addEventListener('click', exportCurrentTruck);
+  el.scanInput.addEventListener('blur', ()=> setTimeout(()=>{
+    if(currentView!=='scan') return;
+    const a = document.activeElement;
+    const isInteractive = a && ['BUTTON','INPUT','TEXTAREA','A'].includes(a.tagName);
+    if(!isInteractive) focusScan();
+  }, 50));
+
+  el.recordsBackBtn.addEventListener('click', ()=>setView('home'));
+  el.searchBtn.addEventListener('click', renderRecords);
+  el.clearSearchBtn.addEventListener('click', ()=>{ el.searchDateInput.value=''; el.searchTruckInput.value=''; renderRecords(); });
+  el.exportAllBtn.addEventListener('click', exportAllTrucks);
+
+  el.detailBackBtn.addEventListener('click', ()=>setView('records'));
+  el.exportTruckBtn.addEventListener('click', exportDetailTruck);
+  el.deleteTruckBtn.addEventListener('click', handleDeleteTruckClick);
+
+  function tickClock(){
+    if(el.clockHome) el.clockHome.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  loadAll();
+
+  if(screen.orientation && screen.orientation.lock){
+    screen.orientation.lock('portrait-primary').catch(()=>{
+      screen.orientation.lock('portrait').catch(()=>{});
+    });
+  }
+
+  // Belt-and-braces fix for devices/browsers that don't fully honor the lock API:
+  // actively flip the page back right-side up if it's ever reported upside-down.
+  function enforceUpright(){
+    const upsideDown = screen.orientation && screen.orientation.type === 'portrait-secondary';
+    document.body.style.transform = upsideDown ? 'rotate(180deg)' : '';
+  }
+  if(screen.orientation){
+    screen.orientation.addEventListener('change', enforceUpright);
+  }
+  window.addEventListener('resize', enforceUpright);
+  enforceUpright();
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('sw.js').then((reg)=>{
+        // force an immediate check against the hosted sw.js right now
+        reg.update().catch(()=>{});
+
+        reg.addEventListener('updatefound', ()=>{
+          const nw = reg.installing;
+          if(!nw) return;
+          nw.addEventListener('statechange', ()=>{
+            if(nw.state === 'installed' && navigator.serviceWorker.controller){
+              showUpdateBanner();
+            }
+          });
+        });
+
+        // keep checking every 60s while the app stays open
+        setInterval(()=>{ reg.update().catch(()=>{}); }, 60000);
+      }).catch(()=>{});
+    });
+  }
+
+  function showUpdateBanner(){
+    if(document.getElementById('updateBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'updateBanner';
+    b.textContent = 'UPDATE AVAILABLE — TAP TO REFRESH';
+    b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:var(--amber);color:#FFFFFF;text-align:center;padding:11px 8px;font-family:"Courier New",monospace;font-size:13px;font-weight:bold;letter-spacing:0.04em;cursor:pointer;';
+    b.onclick = ()=>window.location.reload();
+    document.body.appendChild(b);
+  }
+})();
+</script>
+</body>
+</html>
